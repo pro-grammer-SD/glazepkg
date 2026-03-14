@@ -230,10 +230,17 @@ func loadDetail(name string) tea.Cmd {
 	}
 }
 
-func fetchDescriptions(pkgs []model.Package, cache *manager.DescriptionCache) tea.Cmd {
+func fetchDescriptions(pkgs []model.Package, cache *manager.DescriptionCache, skipKeys map[string]string) tea.Cmd {
 	return func() tea.Msg {
+		// Filter out packages with user-edited descriptions
+		var toFetch []model.Package
+		for _, p := range pkgs {
+			if _, skip := skipKeys[p.Key()]; !skip {
+				toFetch = append(toFetch, p)
+			}
+		}
 		mgrs := manager.All()
-		descs := manager.FetchDescriptions(mgrs, pkgs, cache)
+		descs := manager.FetchDescriptions(mgrs, toFetch, cache)
 		return descriptionsDoneMsg{descs: descs}
 	}
 }
@@ -277,27 +284,32 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.allPkgs = msg.pkgs
+		// Apply user notes immediately so they're visible before descriptions load
+		for i := range m.allPkgs {
+			if note, ok := m.userNotes[m.allPkgs[i].Key()]; ok {
+				m.allPkgs[i].Description = note
+			}
+		}
 		m.tabs = buildTabs(m.allPkgs)
 		m.applyFilter()
 		if msg.fromCache {
 			age := manager.ScanCacheAge()
 			m.statusMsg = fmt.Sprintf("loaded from cache (%s old) — press r to rescan", formatDuration(age))
 		}
-		// Dispatch background description fetch
+		// Dispatch background description fetch (skip packages with user notes)
 		m.loadingDescs = true
-		return m, fetchDescriptions(m.allPkgs, m.descCache)
+		return m, fetchDescriptions(m.allPkgs, m.descCache, m.userNotes)
 
 	case descriptionsDoneMsg:
 		m.loadingDescs = false
-		// Merge descriptions into packages
+		// Merge fetched descriptions (user-noted packages were excluded from fetch)
 		for i := range m.allPkgs {
 			key := m.allPkgs[i].Key()
+			if _, hasNote := m.userNotes[key]; hasNote {
+				continue
+			}
 			if desc, ok := msg.descs[key]; ok {
 				m.allPkgs[i].Description = desc
-			}
-			// User notes override fetched descriptions
-			if note, ok := m.userNotes[key]; ok {
-				m.allPkgs[i].Description = note
 			}
 		}
 		m.applyFilter()
