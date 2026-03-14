@@ -31,10 +31,20 @@ cd glazepkg
 go build ./cmd/gpk
 ```
 
+## Update
+
+```bash
+gpk update
+```
+
+Self-updates the binary to the latest release. Run `gpk version` to check your current version.
+
 ## Usage
 
 ```
 gpk              Launch TUI
+gpk update       Self-update to latest release
+gpk version      Show current version
 gpk --help       Show keybind reference
 ```
 
@@ -52,6 +62,7 @@ Just run `gpk` — it drops straight into a beautiful table.
 | `/` | Fuzzy search |
 | `Esc` | Clear search / close overlay |
 | `Enter` | Package details |
+| `e` (detail) | Edit description |
 | `r` | Rescan all managers |
 | `s` | Save snapshot |
 | `d` | Diff against last snapshot |
@@ -81,6 +92,8 @@ Just run `gpk` — it drops straight into a beautiful table.
 - Managers that aren't installed are silently skipped.
 - Brew separates explicitly installed formulae from auto-pulled dependencies — deps go in a dedicated **deps** tab showing which tool required them.
 - Descriptions are fetched in the background and cached for 24 hours.
+- Packages with available updates show a `↑` indicator next to their version (checked every 7 days).
+- You can add custom descriptions to any package by pressing `e` in the detail view — these persist across sessions and won't be overwritten by fetched descriptions.
 
 ## Data Storage
 
@@ -88,6 +101,8 @@ Just run `gpk` — it drops straight into a beautiful table.
 |---|---|---|
 | Scan cache | `~/.local/share/glazepkg/cache/scan.json` | 10 days |
 | Description cache | `~/.local/share/glazepkg/cache/descriptions.json` | 24 hours |
+| Update cache | `~/.local/share/glazepkg/cache/updates.json` | 7 days |
+| User notes | `~/.local/share/glazepkg/notes.json` | permanent |
 | Snapshots | `~/.local/share/glazepkg/snapshots/` | permanent |
 | Exports | `~/.local/share/glazepkg/exports/` | permanent |
 
